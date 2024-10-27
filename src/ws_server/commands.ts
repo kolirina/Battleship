@@ -1,6 +1,11 @@
 import WebSocket from "ws";
 import { createPlayer, validatePlayer } from "./player.ts";
-import { createRoom, joinRoom } from "./room.ts";
+import {
+  createRoom,
+  joinRoom,
+  updateRoomState,
+  updateWinners,
+} from "./room.ts";
 import { attack, initializeGame } from "./game.ts";
 import { inMemoryDB } from "./inMemoryDB.ts";
 
@@ -73,19 +78,28 @@ export function handlePlayerCommand(ws: WebSocket, command: Command) {
       );
     }
   }
+  updateRoomState();
+  console.log("in commands");
+  updateWinners();
 }
 
 export function handleRoomCommand(ws: WebSocket, command: Command) {
+  console.log("Received room command:", command);
   const { type, data, id } = command;
 
   if (type === "create_room") {
-    const { playerId } = data;
-    const player = inMemoryDB.playerDb.get(playerId);
-    if (player) {
-      const room = createRoom(player);
-      ws.send(
-        JSON.stringify({ status: "success", message: "Room created", room })
-      );
+    const currentPlayer = inMemoryDB.getCurrentPlayer();
+
+    if (currentPlayer) {
+      const currentPlayerId = currentPlayer.id;
+      console.log(`Current player ID: ${currentPlayerId}`);
+    } else {
+      console.log("No current player.");
+    }
+    if (currentPlayer) {
+      const room = createRoom(currentPlayer);
+      inMemoryDB.roomDb.set(room.id, room);
+      updateRoomState();
     } else {
       ws.send(JSON.stringify({ status: "error", message: "Player not found" }));
     }

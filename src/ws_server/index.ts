@@ -10,3 +10,4 @@ wss.on("connection", (ws: WebSocket) => {
 });
 
 console.log(`WebSocket server is running on ws://localhost:${PORT}`);
+export default wss;

@@ -24,7 +24,7 @@ export function createPlayer(
   name: string,
   password: string
 ): RegistrationResponse {
-  console.log("Before adding:", Array.from(inMemoryDB.playerDb.values())); // перед добавлением игрока
+  console.log("Before adding:", Array.from(inMemoryDB.playerDb.values()));
   const existingPlayer = Array.from(inMemoryDB.playerDb.values()).find(
     (p) => p.name === name
   );
@@ -45,6 +45,8 @@ export function createPlayer(
   const id = generateUniqueId();
   const player: Player = { id, name, password, wins: 0 };
   inMemoryDB.playerDb.set(id, player);
+  inMemoryDB.setCurrentPlayer(player);
+  console.log(`Logged in as: ${player.id}`);
   console.log("After adding:", Array.from(inMemoryDB.playerDb.values()));
 
   return {
