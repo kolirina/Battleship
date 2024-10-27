@@ -1,18 +1,12 @@
-import { WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer } from "ws";
+import { handleConnection } from "../utils.ts";
 
-const wss = new WebSocketServer({ port: 8081 });
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocketServer({ port: Number(PORT) });
 
-wss.on("connection", (ws) => {
-  console.log("New WebSocket connection established.");
-
-  ws.on("message", (message) => {
-    console.log("Received:", message.toString());
-    ws.send(`Server received: ${message}`);
-  });
-
-  ws.on("close", () => {
-    console.log("WebSocket connection closed.");
-  });
+wss.on("connection", (ws: WebSocket) => {
+  console.log("New connection established");
+  handleConnection(ws);
 });
 
-console.log("WebSocket server is running on ws://localhost:8081");
+console.log(`WebSocket server is running on ws://localhost:${PORT}`);
