@@ -14,6 +14,11 @@ export interface Room {
   isGameActive: boolean;
 }
 
+// export interface Room {
+//     id: string;
+//     players: { player: Player; socket: WebSocket }[];
+//   }
+
 const rooms: Map<string, Room> = new Map();
 const players: Map<string, Player> = new Map();
 

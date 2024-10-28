@@ -86,6 +86,7 @@ export function handlePlayerCommand(ws: WebSocket, command: Command) {
 export function handleRoomCommand(ws: WebSocket, command: Command) {
   console.log("Received room command:", command);
   const { type, data, id } = command;
+  console.log(data);
 
   if (type === "create_room") {
     const currentPlayer = inMemoryDB.getCurrentPlayer();
@@ -106,19 +107,32 @@ export function handleRoomCommand(ws: WebSocket, command: Command) {
   }
 
   if (type === "add_user_to_room") {
-    const { roomId, playerId } = data;
-    const room = inMemoryDB.roomDb.get(roomId);
-    const player = inMemoryDB.playerDb.get(playerId);
-    if (room && player) {
-      const success = joinRoom(roomId, player);
-      ws.send(
-        JSON.stringify({
-          status: success ? "success" : "error",
-          message: success
-            ? "Player added to room"
-            : "Room is full or not found",
-        })
-      );
+    const parsedData = JSON.parse(data);
+    const indexRoom = parsedData.indexRoom;
+
+    console.log(indexRoom);
+    console.log(1111, indexRoom);
+    const room = inMemoryDB.roomDb.get(indexRoom);
+    const currentPlayer = inMemoryDB.getCurrentPlayer();
+
+    if (currentPlayer) {
+      const currentPlayerId = currentPlayer.id;
+      console.log(`Current player ID: ${currentPlayerId}`, indexRoom);
+    } else {
+      console.log("No current player.");
+    }
+    if (room && currentPlayer) {
+      updateRoomState();
+      //   const success = joinRoom(indexRoom, currentPlayer);
+
+      //   ws.send(
+      //     JSON.stringify({
+      //       status: success ? "success" : "error",
+      //       message: success
+      //         ? "Player added to room"
+      //         : "Room is full or not found",
+      //     })
+      //   );
     } else {
       ws.send(
         JSON.stringify({ status: "error", message: "Room or player not found" })

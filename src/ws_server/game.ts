@@ -49,7 +49,7 @@ export function attack(
     );
     if (enemyBoard) {
       const hitKey = `${x},${y}`;
-      if (enemyBoard.hits.has(hitKey)) return "miss"; // Удар в ту же точку
+      if (enemyBoard.hits.has(hitKey)) return "miss";
       enemyBoard.hits.add(hitKey);
       const shipHit = enemyBoard.ships.some((ship) => isHit(ship, x, y));
       return shipHit ? "hit" : "miss";

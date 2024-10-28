@@ -8,6 +8,7 @@ let currentPlayer: Player | null = null;
 
 export const inMemoryDB = {
   playerDb,
+  roomDb,
   createPlayer: (player: Player) => playerDb.set(player.id, player),
   getPlayer: (id: string) => playerDb.get(id),
   validatePlayer: (name: string, password: string): Player | null => {
@@ -22,5 +23,18 @@ export const inMemoryDB = {
     currentPlayer = player;
   },
   getCurrentPlayer: () => currentPlayer,
-  roomDb,
+
+  sendMessageToRoom: (roomId: string, message: any) => {
+    const room = roomDb.get(roomId);
+    if (!room) {
+      console.error(`Комната с id ${roomId} не найдена`);
+      return;
+    }
+
+    // room.players.forEach(({ socket }) => {
+    //   if (socket.readyState === WebSocket.OPEN) {
+    //     socket.send(JSON.stringify(message));
+    //   }
+    // });
+  },
 };
