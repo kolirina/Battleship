@@ -5,6 +5,7 @@ const playerDb: Map<string, Player> = new Map();
 const roomDb: Map<string, Room> = new Map();
 
 let currentPlayer: Player | null = null;
+// let currentGame: Game | null = null;
 
 export const inMemoryDB = {
   playerDb,

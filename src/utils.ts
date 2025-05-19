@@ -7,7 +7,11 @@ import {
 
 export function handleConnection(ws: WebSocket): void {
   ws.on("message", (message: string) => {
-    console.log(message);
+    console.log(
+      "полученное сообщение >>>>>>>>",
+      JSON.parse(message),
+      ">>>>>>>>>>"
+    );
     try {
       const command = JSON.parse(message);
       switch (command.type) {
@@ -16,8 +20,11 @@ export function handleConnection(ws: WebSocket): void {
           break;
         case "create_room":
         case "add_user_to_room":
+        case "create_game":
           handleRoomCommand(ws, command);
           break;
+        case "start_game":
+        case "add_ships":
         case "attack":
         case "randomAttack":
           handleGameCommand(ws, command);
@@ -34,3 +41,5 @@ export function handleConnection(ws: WebSocket): void {
     console.log("Connection closed");
   });
 }
+
+export const activeSockets: Map<number | string, WebSocket> = new Map();

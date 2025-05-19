@@ -1,13 +1,15 @@
 import WebSocket from "ws";
-import { createPlayer, validatePlayer } from "./player.ts";
+import { createPlayer, currentUser, validatePlayer } from "./player.ts";
 import {
   createRoom,
   joinRoom,
   updateRoomState,
   updateWinners,
+  createGame,
 } from "./room.ts";
 import { attack, initializeGame } from "./game.ts";
 import { inMemoryDB } from "./inMemoryDB.ts";
+import { json } from "stream/consumers";
 
 interface Command {
   type: string;
@@ -37,7 +39,7 @@ export function handlePlayerCommand(ws: WebSocket, command: Command) {
   }
 
   const { name, password } = parsedData;
-  const playerResponse = createPlayer(name, password);
+  const playerResponse = createPlayer(name, password, ws);
 
   if (playerResponse) {
     const formattedResponse = {
@@ -63,8 +65,9 @@ export function handlePlayerCommand(ws: WebSocket, command: Command) {
 
   if (type === "login") {
     const { name, password } = data;
-    const player = validatePlayer(name, password);
+    const player = validatePlayer(name, password, ws);
     if (player) {
+      inMemoryDB.setCurrentPlayer(player);
       ws.send(
         JSON.stringify({
           status: "success",
@@ -89,11 +92,10 @@ export function handleRoomCommand(ws: WebSocket, command: Command) {
   console.log(data);
 
   if (type === "create_room") {
-    const currentPlayer = inMemoryDB.getCurrentPlayer();
+    const currentPlayer = currentUser(ws);
 
     if (currentPlayer) {
       const currentPlayerId = currentPlayer.id;
-      console.log(`Current player ID: ${currentPlayerId}`);
     } else {
       console.log("No current player.");
     }
@@ -110,10 +112,9 @@ export function handleRoomCommand(ws: WebSocket, command: Command) {
     const parsedData = JSON.parse(data);
     const indexRoom = parsedData.indexRoom;
 
-    console.log(indexRoom);
-    console.log(1111, indexRoom);
     const room = inMemoryDB.roomDb.get(indexRoom);
-    const currentPlayer = inMemoryDB.getCurrentPlayer();
+    // const currentPlayer = inMemoryDB.getCurrentPlayer();
+    const currentPlayer = currentUser(ws);
 
     if (currentPlayer) {
       const currentPlayerId = currentPlayer.id;
@@ -122,17 +123,12 @@ export function handleRoomCommand(ws: WebSocket, command: Command) {
       console.log("No current player.");
     }
     if (room && currentPlayer) {
+      joinRoom(room.id, currentPlayer);
       updateRoomState();
-      //   const success = joinRoom(indexRoom, currentPlayer);
 
-      //   ws.send(
-      //     JSON.stringify({
-      //       status: success ? "success" : "error",
-      //       message: success
-      //         ? "Player added to room"
-      //         : "Room is full or not found",
-      //     })
-      //   );
+      if (room && room.players.length === 2) {
+        createGame();
+      }
     } else {
       ws.send(
         JSON.stringify({ status: "error", message: "Room or player not found" })
@@ -144,7 +140,7 @@ export function handleRoomCommand(ws: WebSocket, command: Command) {
 export function handleGameCommand(ws: WebSocket, command: Command) {
   const { type, data, id } = command;
 
-  if (type === "start_game") {
+  if (type === "create_game") {
     const { roomId } = data;
     const room = inMemoryDB.roomDb.get(roomId);
     if (room && room.players.length === 2) {
@@ -152,6 +148,7 @@ export function handleGameCommand(ws: WebSocket, command: Command) {
         roomId,
         room.players.map((player) => player.id)
       );
+
       ws.send(JSON.stringify({ status: "success", message: "Game started" }));
     } else {
       ws.send(
@@ -161,6 +158,118 @@ export function handleGameCommand(ws: WebSocket, command: Command) {
         })
       );
     }
+  }
+
+  // if (type === "start_game") {
+  //   const { roomId } = data;
+  //   const room = inMemoryDB.roomDb.get(roomId);
+  //   if (room && room.players.length === 2) {
+  //     initializeGame(
+  //       roomId,
+  //       room.players.map((player) => player.id)
+  //     );
+  //     console.log(
+  //       "from back to front in handlegamecommand start_game",
+  //       JSON.stringify({ status: "success", message: "Game started" })
+  //     );
+  //     ws.send(JSON.stringify({ status: "success", message: "Game started" }));
+  //   } else {
+  //     ws.send(
+  //       JSON.stringify({
+  //         status: "error",
+  //         message: "Room not found or not enough players",
+  //       })
+  //     );
+  //   }
+  // }
+
+  if (type === "add_ships") {
+    const currentPlayer = currentUser(ws);
+    currentPlayer!.ships = JSON.parse(command.data)["ships"];
+    console.log(currentPlayer!.ships);
+    console.log(
+      "Array.from(inMemoryDB.playerDb.values())",
+      Array.from(inMemoryDB.playerDb.values())
+    );
+    const players = Array.from(inMemoryDB.playerDb.values());
+    players.forEach((player) => {
+      if (player["ships"].length === 0) {
+        return;
+      } else {
+        ws.send(
+          JSON.stringify({
+            type: "start_game",
+            data: {
+              gameId: "504dtj2z",
+              ships: [
+                {
+                  position: { x: 4, y: 1 },
+                  direction: true,
+                  type: "huge",
+                  length: 4,
+                },
+                {
+                  position: { x: 5, y: 9 },
+                  direction: false,
+                  type: "large",
+                  length: 3,
+                },
+                {
+                  position: { x: 0, y: 2 },
+                  direction: false,
+                  type: "large",
+                  length: 3,
+                },
+                {
+                  position: { x: 6, y: 3 },
+                  direction: true,
+                  type: "medium",
+                  length: 2,
+                },
+                {
+                  position: { x: 6, y: 1 },
+                  direction: false,
+                  type: "medium",
+                  length: 2,
+                },
+                {
+                  position: { x: 7, y: 6 },
+                  direction: true,
+                  type: "medium",
+                  length: 2,
+                },
+                {
+                  position: { x: 2, y: 0 },
+                  direction: true,
+                  type: "small",
+                  length: 1,
+                },
+                {
+                  position: { x: 3, y: 8 },
+                  direction: true,
+                  type: "small",
+                  length: 1,
+                },
+                {
+                  position: { x: 5, y: 6 },
+                  direction: true,
+                  type: "small",
+                  length: 1,
+                },
+                {
+                  position: { x: 8, y: 3 },
+                  direction: true,
+                  type: "small",
+                  length: 1,
+                },
+              ],
+              indexPlayer: "oz2rc3yc",
+            },
+            id,
+          })
+        );
+      }
+    });
   }
 
   if (type === "attack") {

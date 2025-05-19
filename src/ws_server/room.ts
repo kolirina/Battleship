@@ -1,6 +1,7 @@
 import { Player } from "./player.ts";
 import wss from "./index.ts";
 import WebSocket from "ws";
+import { inMemoryDB } from "./inMemoryDB.ts";
 
 interface Message {
   type: string;
@@ -32,9 +33,15 @@ export function createRoom(player: Player): Room {
 
 export function joinRoom(roomId: string, player: Player): boolean {
   const room = rooms.get(roomId);
-  if (room && room.players.length < 2) {
-    room.players.push(player);
-    if (room.players.length === 2) room.isGameActive = true;
+  if (player && room && room.players.length < 2) {
+    const playerIds = new Set(room.players.map((p) => p.id));
+    if (!playerIds.has(player.id)) {
+      room.players.push(player);
+    }
+    if (room.players.length === 2) {
+      room.isGameActive = true;
+      createGame();
+    }
     return true;
   }
   return false;
@@ -74,6 +81,23 @@ export function updateRoomState(): void {
   broadcastMessage(message);
 }
 
+export function createGame(): void {
+  const currentPlayer = inMemoryDB.getCurrentPlayer();
+  if (currentPlayer) {
+    const gameData = {
+      idGame: generateUniqueId(),
+      idPlayer: currentPlayer.id,
+    };
+
+    const message: Message = {
+      type: "create_game",
+      data: JSON.stringify(gameData),
+      id: 0,
+    };
+    broadcastMessage(message);
+  }
+}
+
 export function updateWinners(): void {
   const winners = Array.from(players.values())
     .filter((player) => player.wins > 0)
@@ -85,7 +109,7 @@ export function updateWinners(): void {
 
   const message: Message = {
     type: "update_winners",
-    data: winners,
+    data: JSON.stringify(winners),
     id: 0,
   };
 
